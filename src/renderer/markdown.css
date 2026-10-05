@@ -1,0 +1,254 @@
+#md_body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+	padding: 0.15rem 0.15rem 0.4rem;
+}
+
+.md {
+	color: var(--ink);
+	font-size: 0.95rem;
+	line-height: 1.65;
+}
+
+.md > :first-child {
+	margin-top: 0;
+}
+
+.md > :last-child {
+	margin-bottom: 0;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+	margin: 1.25em 0 0.45em;
+	color: var(--brass);
+	font-weight: 600;
+	line-height: 1.42;
+}
+
+.md h1,
+.md h2 {
+	padding-bottom: 0.25rem;
+	border-bottom: 1px solid var(--line);
+}
+
+.md h1 { font-size: 1.5rem; }
+.md h2 { font-size: 1.3rem; }
+.md h3 { font-size: 1.2rem; }
+.md h4 { font-size: 1.1rem; }
+.md h5,
+.md h6 { font-size: 1rem; }
+
+.md p {
+	margin: 0 0 1.15em;
+}
+
+.md a {
+	color: var(--brass);
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.md a:hover,
+.md a:focus {
+	color: var(--brass-lit);
+}
+
+.md ul,
+.md ol {
+	margin: 0.7em 0;
+	padding-left: 1.4rem;
+}
+
+.md li {
+	margin: 0.2em 0;
+}
+
+.md ul.contains-task-list {
+	list-style: none;
+	padding-left: 0.15rem;
+}
+
+.md .task-list-item {
+	list-style: none;
+	margin-left: 0;
+}
+
+.md .task-list-item-checkbox {
+	margin: 0 0.5rem 0 0;
+	accent-color: var(--brass);
+	pointer-events: none;
+	vertical-align: middle;
+}
+
+.md blockquote {
+	margin: 0.8em 0;
+	padding: 0.15rem 0 0.15rem 1rem;
+	background: var(--quote);
+	border-radius: 3px;
+	border-left: 4px solid var(--quote-line);
+	color: var(--muted);
+}
+
+.md blockquote p {
+	margin: 0;
+	padding: 0.25rem 0.4rem 0.25rem 0;
+}
+
+.md hr {
+	margin: 1.1em 0;
+	border: 0;
+	border-top: 1px solid var(--line);
+}
+
+.md code {
+	font-family: Menlo, Monaco, "Courier New", ui-monospace, monospace;
+	font-size: 0.86em;
+}
+
+.md p code,
+.md li code {
+	color: var(--ink);
+	background: var(--code-bg);
+	border-radius: 4px;
+	padding: 2px 4px 1px 4px;
+	vertical-align: bottom;
+}
+
+.md pre {
+	margin: 0.8em 0;
+	padding: 0.7rem 1rem;
+	background: var(--code-bg);
+	border-radius: 4px;
+	overflow-x: auto;
+	line-height: 1.25;
+}
+
+.md pre code {
+	display: block;
+	padding: 0;
+	background: transparent;
+	color: var(--ink);
+	font-size: 0.82rem;
+	tab-size: 4;
+}
+
+.md table {
+	margin: 0.8em 0;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.md th {
+	border-bottom: 1px solid var(--muted);
+	padding: 0 4px 4px;
+	text-align: left;
+	color: var(--brass);
+	font-weight: 600;
+}
+
+.md td {
+	border-top: 1px solid var(--line);
+	padding: 4px 8px;
+}
+
+.md img,
+.md video,
+.md svg {
+	max-width: 100%;
+	height: auto;
+}
+
+.md strong {
+	font-weight: 650;
+}
+
+.md em {
+	font-style: italic;
+}
+
+.md del {
+	color: var(--muted);
+}
+
+/* highlight.js tokens. Grouping follows atom-one-dark (the file AI UI ships);
+   colours stay on Loci brass rather than the vscode palette. */
+.md .hljs {
+	color: var(--ink);
+	background: transparent;
+}
+
+.md .hljs-comment,
+.md .hljs-quote {
+	color: var(--code-comment);
+	font-style: italic;
+}
+
+.md .hljs-doctag,
+.md .hljs-formula,
+.md .hljs-keyword {
+	color: var(--code-keyword);
+}
+
+.md .hljs-deletion,
+.md .hljs-name,
+.md .hljs-section,
+.md .hljs-selector-tag,
+.md .hljs-subst {
+	color: var(--code-name);
+}
+
+.md .hljs-literal {
+	color: var(--code-literal);
+}
+
+.md .hljs-addition,
+.md .hljs-attribute,
+.md .hljs-meta .hljs-string,
+.md .hljs-regexp,
+.md .hljs-string {
+	color: var(--code-string);
+}
+
+.md .hljs-attr,
+.md .hljs-number,
+.md .hljs-selector-attr,
+.md .hljs-selector-class,
+.md .hljs-selector-pseudo,
+.md .hljs-template-variable,
+.md .hljs-type,
+.md .hljs-variable {
+	color: var(--code-literal);
+}
+
+.md .hljs-bullet,
+.md .hljs-link,
+.md .hljs-meta,
+.md .hljs-selector-id,
+.md .hljs-symbol,
+.md .hljs-title {
+	color: var(--code-keyword);
+}
+
+.md .hljs-built_in,
+.md .hljs-class .hljs-title,
+.md .hljs-title.class_ {
+	color: var(--code-literal);
+}
+
+.md .hljs-emphasis {
+	font-style: italic;
+}
+
+.md .hljs-strong {
+	font-weight: 700;
+}
+
+.md .hljs-link {
+	text-decoration: underline;
+}

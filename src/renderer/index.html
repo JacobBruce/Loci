@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Loci</title>
+	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;">
+	<script src="./theme-boot.js"></script>
+	<link rel="stylesheet" href="./styles.css">
+	<link rel="stylesheet" href="./markdown.css">
+</head>
+<body>
+	<header id="titlebar">
+		<h1>Loci</h1>
+		<p id="status">graybox</p>
+		<div id="waiting_wrap" class="hidden">
+			<button type="button" id="waiting_btn" aria-haspopup="menu" aria-expanded="false" aria-controls="waiting_menu" aria-label="Waiting houses">0</button>
+			<div id="waiting_menu" class="hidden" role="menu"></div>
+		</div>
+		<div id="working_wrap" class="hidden">
+			<button type="button" id="working_btn" aria-haspopup="menu" aria-expanded="false" aria-controls="working_menu" aria-label="Working"></button>
+			<div id="working_menu" class="hidden" role="menu"></div>
+		</div>
+		<button type="button" id="houses_btn" class="hidden">Houses</button>
+		<button type="button" id="new_house_btn" class="hidden">New House</button>
+		<button type="button" id="models_btn">Models</button>
+		<button type="button" id="settings_btn">Settings</button>
+	</header>
+
+	<section id="view_welcome" class="view hidden">
+		<div id="welcome">
+			<h2>Welcome to Loci</h2>
+			<p>A house is a memory palace and a workstation for one agent. Create one to begin.</p>
+			<button type="button" id="welcome_new">New House</button>
+		</div>
+	</section>
+
+	<section id="view_list" class="view hidden">
+		<div id="list_toolbar">
+			<h2>Houses</h2>
+			<div id="list_filters">
+				<select id="group_filter" aria-label="Filter by group">
+					<option value="">All groups</option>
+				</select>
+				<select id="house_show" aria-label="Filter by status">
+					<option value="">All houses</option>
+					<option value="enabled">Enabled</option>
+					<option value="disabled">Disabled</option>
+				</select>
+				<select id="house_sort" aria-label="Sort houses">
+					<option value="recent">Recently viewed</option>
+					<option value="name">Alphabetical</option>
+				</select>
+			</div>
+		</div>
+		<p id="list_empty" class="hidden">No houses yet.</p>
+		<div id="house_cards"></div>
+	</section>
+
+	<section id="view_form" class="view hidden">
+		<form id="house_form">
+			<h2 id="form_title">New House</h2>
+			<label class="hf_label">Agent name
+				<input id="hf_name" class="field" type="text" autocomplete="off" required>
+			</label>
+			<label class="hf_label">Model
+				<select id="hf_model" class="field" required></select>
+			</label>
+			<label class="hf_label">Description
+				<textarea id="hf_description" class="field" rows="3" placeholder="The purpose of this agent. Shown on the house card and in the agent's Runtime prompt. Put standing instructions in SYSTEM or SOUL."></textarea>
+			</label>
+			<label class="hf_label">Group
+				<input id="hf_group" class="field" type="text" autocomplete="off" placeholder="Leave blank to work alone">
+			</label>
+			<label class="hf_label">Alarm clock
+				<select id="hf_alarms_preset" class="field">
+					<option value="off">Off</option>
+					<option value="15m">Every 15 minutes</option>
+					<option value="hourly">Every hour</option>
+					<option value="daily">Daily at 9:00</option>
+					<option value="custom">Custom crontab</option>
+				</select>
+			</label>
+			<label id="hf_alarms_wrap" class="hf_label hidden">ALARMS
+				<textarea id="hf_alarms" class="field" rows="4" spellcheck="false" placeholder='0 * * * * "house heartbeat"'></textarea>
+			</label>
+			<label class="hf_label">Turn limit (0 = none)
+				<input id="hf_max_turns" class="field" type="number" min="0" step="1" value="0">
+			</label>
+			<div id="hf_agent_alarms_label">
+				<span id="hf_agent_alarms_text">Agent may set and stop alarms</span>
+				<label class="pack_toggle">
+					<input id="hf_agent_alarms" type="checkbox" checked aria-labelledby="hf_agent_alarms_text">
+					<span class="pack_toggle_track"></span>
+				</label>
+			</div>
+			<div id="hf_agent_events_label">
+				<span id="hf_agent_events_text">Agent may set and stop calendar events</span>
+				<label class="pack_toggle">
+					<input id="hf_agent_events" type="checkbox" checked aria-labelledby="hf_agent_events_text">
+					<span class="pack_toggle_track"></span>
+				</label>
+			</div>
+			<div id="hf_agent_web_label">
+				<span id="hf_agent_web_text">Agent may browse the web and download files</span>
+				<label class="pack_toggle">
+					<input id="hf_agent_web" type="checkbox" checked aria-labelledby="hf_agent_web_text">
+					<span class="pack_toggle_track"></span>
+				</label>
+			</div>
+			<div id="hf_manager_label">
+				<span id="hf_manager_text">Agent may open group polls and post group notices</span>
+				<label class="pack_toggle">
+					<input id="hf_manager" type="checkbox" aria-labelledby="hf_manager_text">
+					<span class="pack_toggle_track"></span>
+				</label>
+			</div>
+			<fieldset>
+				<legend>Workspace paths</legend>
+				<ul id="hf_workspaces"></ul>
+				<button type="button" id="hf_ws_add">Add folder</button>
+			</fieldset>
+			<details>
+				<summary>BOOT / LOGOFF / SYSTEM / SOUL / USER</summary>
+				<label class="hf_label">BOOT.md
+					<textarea id="hf_boot" class="field" rows="8"></textarea>
+				</label>
+				<label class="hf_label">LOGOFF.md
+					<textarea id="hf_logoff" class="field" rows="10"></textarea>
+				</label>
+				<label class="hf_label">SYSTEM.md
+					<textarea id="hf_system" class="field" rows="12"></textarea>
+				</label>
+				<label class="hf_label">SOUL.md
+					<textarea id="hf_soul" class="field" rows="10"></textarea>
+				</label>
+				<label class="hf_label">USER.md
+					<textarea id="hf_user" class="field" rows="6"></textarea>
+				</label>
+			</details>
+			<p id="form_msg" class="dlg_msg dlg_alert"></p>
+			<div id="form_actions" class="dlg_actions">
+				<button type="button" id="hf_config_open" disabled>Open runtime config</button>
+				<button type="submit" id="form_save">Create</button>
+				<button type="button" id="form_cancel">Cancel</button>
+			</div>
+		</form>
+	</section>
+
+	<section id="view_house" class="view hidden">
+		<header id="house_bar">
+			<p id="house_pose"></p>
+			<div id="house_actions">
+				<button type="button" id="assign_task_btn">Assign task</button>
+				<button type="button" id="manage_house_btn">Manage</button>
+				<button type="button" id="tool_packs_btn">Tool packs</button>
+				<button type="button" id="dev_tools_btn" class="hidden">Call tool</button>
+			</div>
+		</header>
+		<section id="rooms" aria-label="Rooms"></section>
+		<section id="chat" aria-label="Chat">
+			<div id="log_wrap">
+				<div id="log"></div>
+				<div id="chat_pending" class="hidden">
+					<span id="chat_pending_label"></span>
+					<button type="button" id="chat_pending_clear" aria-label="Clear attachments">&times;</button>
+				</div>
+			</div>
+			<form id="chat_form">
+				<span id="chat_field">
+					<button type="button" id="chat_attach" aria-haspopup="menu" aria-expanded="false" aria-controls="chat_attach_menu" aria-label="Attach">+</button>
+					<div id="chat_attach_menu" class="hidden" role="menu">
+						<button type="button" id="chat_attach_image" role="menuitem">Attach image</button>
+					</div>
+					<input id="chat_input" type="text" autocomplete="off" placeholder="Say something…">
+				</span>
+				<span id="chat_send_wrap">
+					<button type="submit" id="chat_send">Send</button>
+					<button type="button" id="chat_more" aria-haspopup="menu" aria-expanded="false" aria-controls="chat_menu" aria-label="More">▾</button>
+					<div id="chat_menu" class="hidden" role="menu">
+						<button type="button" id="chat_redo" role="menuitem" disabled>Redo</button>
+						<button type="button" id="chat_clear" role="menuitem" disabled>Clear</button>
+					</div>
+				</span>
+			</form>
+		</section>
+	</section>
+
+	<div id="settings_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="settings_title">
+		<form id="settings_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="settings_dismiss" aria-label="Close"></button>
+			<h2 id="settings_title" class="dlg_title">Settings</h2>
+			<label class="settings_label">Theme
+				<select id="cfg_theme" class="field">
+					<option value="brass">Brass</option>
+					<option value="blue">Blue</option>
+				</select>
+			</label>
+			<label class="settings_label">OpenAI API key
+				<input id="cfg_openai_key" class="field" type="password" autocomplete="off">
+			</label>
+			<label class="settings_label">Anthropic API key
+				<input id="cfg_anthropic_key" class="field" type="password" autocomplete="off">
+			</label>
+			<label class="settings_label">OpenRouter API key
+				<input id="cfg_openrouter_key" class="field" type="password" autocomplete="off">
+			</label>
+			<label class="settings_label">Firecrawl API key
+				<input id="cfg_firecrawl_key" class="field" type="password" autocomplete="off">
+			</label>
+			<label class="settings_label">OpenAI base URL
+				<input id="cfg_openai_base" class="field" type="text" autocomplete="off" placeholder="Leave blank for the official API">
+			</label>
+			<label class="settings_label">Anthropic base URL
+				<input id="cfg_anthropic_base" class="field" type="text" autocomplete="off" placeholder="Leave blank for the official API">
+			</label>
+			<label class="settings_label">Houses folder
+				<span id="cfg_houses_row">
+					<input id="cfg_houses_root" class="field" type="text" autocomplete="off">
+					<button type="button" id="cfg_houses_browse">Browse</button>
+				</span>
+			</label>
+			<label id="cfg_dev_label">
+				<input id="cfg_dev_mode" type="checkbox">Developer Mode</label>
+			<p id="settings_msg" class="dlg_msg dlg_alert"></p>
+		</form>
+	</div>
+
+	<div id="models_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="models_title">
+		<form id="models_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="models_dismiss" aria-label="Close"></button>
+			<h2 id="models_title" class="dlg_title">Model Manager</h2>
+			<fieldset id="mdl_anthropic_box">
+				<legend>Anthropic</legend>
+				<ul id="mdl_anthropic"></ul>
+				<span id="mdl_anthropic_row">
+					<input id="mdl_anthropic_input" class="field" type="text" autocomplete="off" placeholder="claude-sonnet-4-6">
+					<button type="button" id="mdl_anthropic_add">Add</button>
+				</span>
+			</fieldset>
+			<fieldset id="mdl_openai_box">
+				<legend>OpenAI</legend>
+				<ul id="mdl_openai"></ul>
+				<span id="mdl_openai_row">
+					<input id="mdl_openai_input" class="field" type="text" autocomplete="off" placeholder="gpt-5.4">
+					<button type="button" id="mdl_openai_add">Add</button>
+				</span>
+			</fieldset>
+			<fieldset id="mdl_openrouter_box">
+				<legend>OpenRouter</legend>
+				<ul id="mdl_openrouter"></ul>
+				<span id="mdl_openrouter_row">
+					<input id="mdl_openrouter_input" class="field" type="text" autocomplete="off" placeholder="openrouter/auto">
+					<button type="button" id="mdl_openrouter_add">Add</button>
+				</span>
+			</fieldset>
+			<p id="models_msg" class="dlg_msg dlg_alert"></p>
+		</form>
+	</div>
+
+	<div id="notify_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="notify_title">
+		<div id="notify_dialog" class="dlg_panel">
+			<h2 id="notify_title" class="dlg_title">Notification</h2>
+			<p id="notify_text"></p>
+			<div id="notify_actions">
+				<button type="button" id="notify_ok">OK</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="tasks_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="tasks_title">
+		<div id="tasks_dialog">
+			<button type="button" class="dlg_dismiss" id="tasks_dismiss" aria-label="Close"></button>
+			<h2 id="tasks_title" class="dlg_title">Task Board</h2>
+			<div id="task_board">
+				<section id="task_col_progress">
+					<h3 id="task_col_progress_title">In progress</h3>
+					<ul id="task_col_progress_list"></ul>
+				</section>
+				<section id="task_col_awaiting">
+					<h3 id="task_col_awaiting_title">Awaiting approval</h3>
+					<ul id="task_col_awaiting_list"></ul>
+				</section>
+				<section id="task_col_done">
+					<h3 id="task_col_done_title">Completed</h3>
+					<ul id="task_col_done_list"></ul>
+				</section>
+			</div>
+			<h3 id="task_address"></h3>
+			<form id="task_form">
+				<label class="settings_label" id="task_title_label" for="task_title">Title
+					<input id="task_title" class="field" type="text" maxlength="120" autocomplete="off">
+				</label>
+				<label class="settings_label" id="task_body_label" for="task_body">Notes
+					<textarea id="task_body" class="field" rows="4"></textarea>
+				</label>
+				<p id="task_form_msg" class="dlg_msg dlg_alert"></p>
+				<div id="task_form_actions" class="dlg_actions">
+					<button type="submit" id="task_assign">Assign</button>
+					<button type="button" id="task_cancel" class="hidden">Cancel</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div id="approval_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="approval_title">
+		<div id="approval_dialog">
+			<button type="button" class="dlg_dismiss" id="approval_dismiss" aria-label="Close"></button>
+			<h2 id="approval_title" class="dlg_title">Approval</h2>
+			<p id="approval_when"></p>
+			<section id="approval_work_box">
+				<h3 id="approval_work_title">Work done</h3>
+				<ul id="approval_work_list"></ul>
+			</section>
+			<section id="approval_notes_box">
+				<h3 id="approval_notes_title">Notes</h3>
+				<div id="approval_notes" class="md"></div>
+			</section>
+			<div id="approval_body" class="md hidden"></div>
+			<p id="approval_msg" class="dlg_msg dlg_note"></p>
+			<div id="approval_actions" class="dlg_actions">
+				<button type="button" id="approval_good">Approve</button>
+				<button type="button" id="approval_change">Change</button>
+				<button type="button" id="approval_drop">Drop</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="stamp_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="stamp_title">
+		<div id="stamp_dialog">
+			<button type="button" class="dlg_dismiss" id="stamp_dismiss" aria-label="Close"></button>
+			<h2 id="stamp_title" class="dlg_title">Approve</h2>
+			<label class="settings_label" id="stamp_feedback_label" for="stamp_feedback">Feedback
+				<textarea id="stamp_feedback" class="field" rows="4" placeholder="Optional. Leave empty to stamp without waking the agent."></textarea>
+			</label>
+			<p id="stamp_msg" class="dlg_msg"></p>
+			<div id="stamp_actions" class="dlg_actions">
+				<button type="button" id="stamp_confirm">Confirm</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="dev_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="dev_title">
+		<form id="dev_form">
+			<button type="button" class="dlg_dismiss" id="dev_dismiss" aria-label="Close"></button>
+			<h2 id="dev_title" class="dlg_title">Call Tool</h2>
+			<label class="settings_label" id="dev_tool_label" for="dev_tool">Tool
+				<select id="dev_tool" class="field"></select>
+			</label>
+			<label class="settings_label" id="dev_args_label" for="dev_args">Arguments
+				<textarea id="dev_args" class="field" rows="8" spellcheck="false"></textarea>
+			</label>
+			<pre id="dev_result"></pre>
+			<p id="dev_msg" class="dlg_msg dlg_alert"></p>
+			<div id="dev_actions" class="dlg_actions">
+				<button type="submit" id="dev_run">Run</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="md_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="md_title">
+		<div id="md_dialog">
+			<button type="button" class="dlg_dismiss" id="md_dismiss" aria-label="Close"></button>
+			<h2 id="md_title" class="dlg_title"></h2>
+			<div id="md_body" class="md"></div>
+			<p id="md_msg" class="dlg_msg dlg_note"></p>
+			<div id="md_actions" class="dlg_actions">
+				<button type="button" id="md_reveal">Show in folder</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="inspect_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="inspect_title">
+		<div id="inspect_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="inspect_dismiss" aria-label="Close"></button>
+			<h2 id="inspect_title" class="dlg_title"></h2>
+			<p id="inspect_blurb"></p>
+			<ul id="inspect_paths"></ul>
+			<p id="inspect_empty" class="hidden">No files linked.</p>
+			<p id="inspect_msg"></p>
+		</div>
+	</div>
+
+	<div id="calendar_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="calendar_title">
+		<div id="calendar_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="calendar_dismiss" aria-label="Close"></button>
+			<h2 id="calendar_title" class="dlg_title"></h2>
+			<div id="calendar_weekdays"></div>
+			<div id="calendar_grid"></div>
+			<p id="calendar_msg" class="dlg_msg dlg_note"></p>
+			<div id="calendar_actions" class="dlg_actions">
+				<button type="button" id="calendar_list_btn">Event list</button>
+				<button type="button" id="calendar_add">Add event</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="calendar_day_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="calendar_day_title">
+		<div id="calendar_day_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="calendar_day_dismiss" aria-label="Close"></button>
+			<h2 id="calendar_day_title" class="dlg_title"></h2>
+			<ul id="calendar_day_events"></ul>
+			<p id="calendar_day_msg" class="dlg_msg dlg_note"></p>
+			<div id="calendar_day_actions" class="dlg_actions">
+				<button type="button" id="calendar_day_add">Add event</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="calendar_list_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="calendar_list_title">
+		<div id="calendar_list_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="calendar_list_dismiss" aria-label="Close"></button>
+			<h2 id="calendar_list_title" class="dlg_title">Events</h2>
+			<ul id="calendar_list"></ul>
+			<p id="calendar_list_msg" class="dlg_msg dlg_note"></p>
+			<div id="calendar_list_actions" class="dlg_actions">
+				<button type="button" id="calendar_list_add">Add event</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="calendar_event_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="calendar_event_title">
+		<form id="calendar_event_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="calendar_event_dismiss" aria-label="Close"></button>
+			<h2 id="calendar_event_title" class="dlg_title">Add event</h2>
+			<label class="settings_label" id="calendar_event_date_label" for="calendar_event_date">Date
+				<input id="calendar_event_date" class="field" type="date" required>
+			</label>
+			<label class="settings_label" id="calendar_event_time_label" for="calendar_event_time">Time
+				<input id="calendar_event_time" class="field" type="time" step="60" required>
+			</label>
+			<label class="settings_label" id="calendar_event_text_label" for="calendar_event_text">Text
+				<input id="calendar_event_text" class="field" type="text" maxlength="200" autocomplete="off" required>
+			</label>
+			<p id="calendar_event_msg" class="dlg_msg dlg_note"></p>
+			<div id="calendar_event_actions" class="dlg_actions">
+				<button type="submit" id="calendar_event_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="contacts_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="contacts_title">
+		<div id="contacts_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="contacts_dismiss" aria-label="Close"></button>
+			<h2 id="contacts_title" class="dlg_title">Address Book</h2>
+			<nav id="contacts_letters" aria-label="Filter by letter"></nav>
+			<ul id="contacts_list"></ul>
+			<p id="contacts_msg" class="dlg_msg dlg_note"></p>
+			<div id="contacts_actions" class="dlg_actions">
+				<button type="button" id="contacts_add">Add contact</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="contacts_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="contacts_form_title">
+		<form id="contacts_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="contacts_form_dismiss" aria-label="Close"></button>
+			<h2 id="contacts_form_title" class="dlg_title">Add contact</h2>
+			<label class="settings_label" id="contacts_name_label" for="contacts_name">Name
+				<input id="contacts_name" class="field" type="text" maxlength="120" autocomplete="off" required>
+			</label>
+			<label class="settings_label" id="contacts_relation_label" for="contacts_relation">Relation
+				<input id="contacts_relation" class="field" type="text" maxlength="80" autocomplete="off">
+			</label>
+			<label class="settings_label" id="contacts_body_label" for="contacts_body">Notes
+				<textarea id="contacts_body" class="field" rows="6"></textarea>
+			</label>
+			<p id="contacts_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="contacts_form_actions" class="dlg_actions">
+				<button type="submit" id="contacts_form_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="playbook_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="playbook_title">
+		<div id="playbook_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="playbook_dismiss" aria-label="Close"></button>
+			<h2 id="playbook_title" class="dlg_title">Rule Book</h2>
+			<div id="playbook_columns">
+				<section id="playbook_rules">
+					<h3 id="playbook_rules_title">Rules</h3>
+					<ul id="playbook_rules_list"></ul>
+				</section>
+				<section id="playbook_skills">
+					<h3 id="playbook_skills_title">Skills</h3>
+					<ul id="playbook_skills_list"></ul>
+				</section>
+			</div>
+			<p id="playbook_msg" class="dlg_msg dlg_note"></p>
+			<div id="playbook_actions" class="dlg_actions">
+				<button type="button" id="playbook_add_rule">Add rule</button>
+				<button type="button" id="playbook_add_skill">Add skill</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="playbook_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="playbook_form_title">
+		<form id="playbook_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="playbook_form_dismiss" aria-label="Close"></button>
+			<h2 id="playbook_form_title" class="dlg_title">Add rule</h2>
+			<label class="settings_label" id="playbook_name_label" for="playbook_name">Name
+				<input id="playbook_name" class="field" type="text" maxlength="80" autocomplete="off" required>
+			</label>
+			<label class="settings_label" id="playbook_desc_label" for="playbook_desc">Description
+				<input id="playbook_desc" class="field" type="text" maxlength="240" autocomplete="off" placeholder="A brief description of the rule">
+			</label>
+			<label class="settings_label" id="playbook_body_label" for="playbook_body">Body
+				<textarea id="playbook_body" class="field" rows="8"></textarea>
+			</label>
+			<fieldset id="playbook_scope">
+				<legend>Scope</legend>
+				<label id="playbook_scope_house_label" for="playbook_scope_house">
+					<input type="radio" name="playbook_scope" id="playbook_scope_house" value="house" checked> This house
+				</label>
+				<label id="playbook_scope_global_label" for="playbook_scope_global">
+					<input type="radio" name="playbook_scope" id="playbook_scope_global" value="global"> All houses
+				</label>
+			</fieldset>
+			<p id="playbook_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="playbook_form_actions" class="dlg_actions">
+				<button type="submit" id="playbook_form_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="books_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="books_title">
+		<div id="books_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="books_dismiss" aria-label="Close"></button>
+			<h2 id="books_title" class="dlg_title">Book Shelf</h2>
+			<div id="books_search">
+				<input id="books_query" class="field" type="search" maxlength="160" placeholder="Search" autocomplete="off" aria-label="Search books">
+				<select id="books_mode" class="field" aria-label="Result order">
+					<option id="books_mode_created" value="created">Newest</option>
+					<option id="books_mode_accessed" value="accessed">Accessed</option>
+					<option id="books_mode_popular" value="popular">Popular</option>
+					<option id="books_mode_relevant" value="relevant">Relevant</option>
+				</select>
+			</div>
+			<div id="books_body"></div>
+			<p id="books_msg" class="dlg_msg dlg_note"></p>
+			<div id="books_actions" class="dlg_actions">
+				<button type="button" id="books_add">Add book</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="books_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="books_form_title">
+		<form id="books_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="books_form_dismiss" aria-label="Close"></button>
+			<h2 id="books_form_title" class="dlg_title">Add book</h2>
+			<label class="settings_label" id="books_form_name_label" for="books_form_name">Title
+				<input id="books_form_name" class="field" type="text" maxlength="160" autocomplete="off" placeholder="title of book/memory" required>
+			</label>
+			<label class="settings_label" id="books_form_tags_label" for="books_form_tags">Tags
+				<input id="books_form_tags" class="field" type="text" maxlength="400" autocomplete="off" placeholder="comma, separated, tags">
+			</label>
+			<label class="settings_label" id="books_form_description_label" for="books_form_description">Description
+				<input id="books_form_description" class="field" type="text" maxlength="500" autocomplete="off" placeholder="short description">
+			</label>
+			<label class="settings_label" id="books_form_body_label" for="books_form_body">Body
+				<textarea id="books_form_body" class="field" rows="7" required></textarea>
+			</label>
+			<p id="books_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="books_form_actions" class="dlg_actions">
+				<button type="submit" id="books_form_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="diary_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="diary_title">
+		<div id="diary_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="diary_dismiss" aria-label="Close"></button>
+			<h2 id="diary_title" class="dlg_title">Diary</h2>
+			<ul id="diary_list"></ul>
+			<p id="diary_msg" class="dlg_msg dlg_note"></p>
+		</div>
+	</div>
+
+	<div id="notice_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="notice_title">
+		<div id="notice_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="notice_dismiss" aria-label="Close"></button>
+			<h2 id="notice_title" class="dlg_title">Notice Board</h2>
+			<div id="notice_open"></div>
+			<ul id="notice_list"></ul>
+			<p id="notice_msg" class="dlg_msg dlg_note"></p>
+			<div id="notice_actions" class="dlg_actions">
+				<button type="button" id="notice_poll_btn">Open poll</button>
+				<button type="button" id="notice_add_btn">Add notice</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="poll_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="poll_form_title">
+		<form id="poll_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="poll_form_dismiss" aria-label="Close"></button>
+			<h2 id="poll_form_title" class="dlg_title">Open poll</h2>
+			<label class="settings_label" for="poll_question">Question
+				<input id="poll_question" class="field" type="text" maxlength="200" autocomplete="off" required>
+			</label>
+			<label class="settings_label" for="poll_choices">Choices
+				<textarea id="poll_choices" class="field" rows="4" placeholder="One per line (only the choice text, no list numbers)." required></textarea>
+			</label>
+			<label class="settings_label" for="poll_in">Duration
+				<input id="poll_in" class="field" type="text" autocomplete="off" value="4h" placeholder="30m, 4h, 2d">
+			</label>
+			<p id="poll_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="poll_form_actions" class="dlg_actions">
+				<button type="submit" id="poll_form_save">Open poll</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="notice_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="notice_form_title">
+		<form id="notice_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="notice_form_dismiss" aria-label="Close"></button>
+			<h2 id="notice_form_title" class="dlg_title">Add notice</h2>
+			<label class="settings_label" for="notice_text">Notice
+				<textarea id="notice_text" class="field" rows="6" maxlength="1000" placeholder="A group-wide notice" required></textarea>
+			</label>
+			<p id="notice_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="notice_form_actions" class="dlg_actions">
+				<button type="submit" id="notice_form_save">Post</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="cabinet_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="cabinet_title">
+		<div id="cabinet_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="cabinet_dismiss" aria-label="Close"></button>
+			<h2 id="cabinet_title" class="dlg_title">Filing Cabinet</h2>
+			<ul id="cabinet_list"></ul>
+			<p id="cabinet_msg" class="dlg_msg dlg_note"></p>
+		</div>
+	</div>
+
+	<div id="chest_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="chest_title">
+		<div id="chest_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="chest_dismiss" aria-label="Close"></button>
+			<h2 id="chest_title" class="dlg_title">Chest</h2>
+			<ul id="chest_list"></ul>
+			<p id="chest_msg" class="dlg_msg dlg_note"></p>
+		</div>
+	</div>
+
+	<div id="story_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="story_title">
+		<div id="story_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="story_dismiss" aria-label="Close"></button>
+			<h2 id="story_title" class="dlg_title">Story Book</h2>
+			<p id="story_where" class="dlg_msg dlg_note"></p>
+			<ul id="story_list"></ul>
+			<p id="story_msg" class="dlg_msg dlg_note"></p>
+			<div id="story_actions" class="dlg_actions hidden">
+				<button type="button" id="story_back">Back</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="pc_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="pc_title">
+		<div id="pc_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="pc_dismiss" aria-label="Close"></button>
+			<h2 id="pc_title" class="dlg_title">Reminders</h2>
+			<ul id="pc_list"></ul>
+			<p id="pc_msg" class="dlg_msg dlg_note"></p>
+			<div id="pc_actions" class="dlg_actions">
+				<button type="button" id="pc_system">SYSTEM</button>
+				<button type="button" id="pc_add">Add reminder</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="game_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="game_title">
+		<div id="game_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="game_dismiss" aria-label="Close"></button>
+			<h2 id="game_title" class="dlg_title">Game Console</h2>
+			<div id="game_url_row">
+				<label class="settings_label" id="game_url_label" for="game_url">Address
+					<input id="game_url" class="field" type="url" spellcheck="false" autocomplete="off" value="http://127.0.0.1:24740" placeholder="http://127.0.0.1:24740">
+				</label>
+				<button type="button" id="game_connect">Connect</button>
+			</div>
+			<div id="game_idle_row">
+				<label class="settings_label" id="game_idle_label" for="game_idle">Max idle time (seconds)
+					<input id="game_idle" class="field" type="number" min="1" max="3600" step="1" value="30">
+				</label>
+				<div id="game_idle_off_wrap">
+					<span id="game_idle_off_text">No idle limit</span>
+					<label class="pack_toggle">
+						<input id="game_idle_off" type="checkbox" aria-labelledby="game_idle_off_text">
+						<span class="pack_toggle_track"></span>
+					</label>
+				</div>
+			</div>
+			<div id="game_cap_row">
+				<label class="settings_label" id="game_rounds_label" for="game_rounds">Max tool rounds
+					<input id="game_rounds" class="field" type="number" min="1" max="256" step="1" value="32">
+				</label>
+				<div id="game_cap_wrap">
+					<span id="game_cap_text">No tool-round cap</span>
+					<label class="pack_toggle">
+						<input id="game_cap" type="checkbox" aria-labelledby="game_cap_text">
+						<span class="pack_toggle_track"></span>
+					</label>
+				</div>
+			</div>
+			<p id="game_name" class="dlg_msg dlg_note"></p>
+			<p id="game_skill" class="dlg_msg dlg_note"></p>
+			<p id="game_status" class="dlg_msg dlg_note"></p>
+			<div id="game_actions" class="dlg_actions">
+				<button type="button" id="game_start" data-mode="start" disabled>Start</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="clock_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="clock_title">
+		<div id="clock_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="clock_dismiss" aria-label="Close"></button>
+			<h2 id="clock_title" class="dlg_title">Clock</h2>
+			<div id="clock_face_wrap">
+				<svg id="clock_face" viewBox="0 0 100 100" aria-hidden="true">
+					<circle id="clock_disk" cx="50" cy="50" r="48"></circle>
+					<g id="clock_ticks"></g>
+					<line id="clock_hour" x1="50" y1="50" x2="50" y2="26"></line>
+					<line id="clock_minute" x1="50" y1="50" x2="50" y2="16"></line>
+					<line id="clock_second" x1="50" y1="50" x2="50" y2="12"></line>
+					<circle id="clock_pivot" cx="50" cy="50" r="2.2"></circle>
+				</svg>
+			</div>
+			<p id="clock_digital"></p>
+			<p id="clock_zone"></p>
+			<p id="clock_elapsed" class="hidden"></p>
+			<p id="clock_msg" class="dlg_msg dlg_note"></p>
+		</div>
+	</div>
+
+	<div id="alarm_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="alarm_title">
+		<div id="alarm_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="alarm_dismiss" aria-label="Close"></button>
+			<h2 id="alarm_title" class="dlg_title">Alarm Clock</h2>
+			<div id="alarm_display">
+				<div id="alarm_hours" class="alarm_cell"></div>
+				<span id="alarm_colon_hm" class="alarm_colon">:</span>
+				<div id="alarm_minutes" class="alarm_cell"></div>
+				<span id="alarm_colon_ms" class="alarm_colon">:</span>
+				<div id="alarm_seconds" class="alarm_cell"></div>
+			</div>
+			<p id="alarm_zone"></p>
+			<ul id="alarm_list"></ul>
+			<p id="alarm_msg" class="dlg_msg dlg_note"></p>
+			<div id="alarm_actions" class="dlg_actions">
+				<button type="button" id="alarm_add">Add alarm</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="alarm_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="alarm_form_title">
+		<form id="alarm_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="alarm_form_dismiss" aria-label="Close"></button>
+			<h2 id="alarm_form_title" class="dlg_title">Add alarm</h2>
+			<label class="settings_label" id="alarm_form_preset_label" for="alarm_form_preset">Schedule
+				<select id="alarm_form_preset" class="field">
+					<option id="alarm_form_preset_15m" value="15m">Every 15 minutes</option>
+					<option id="alarm_form_preset_hourly" value="hourly">Every hour</option>
+					<option id="alarm_form_preset_daily" value="daily">Daily at 9:00</option>
+					<option id="alarm_form_preset_custom" value="custom">Custom crontab</option>
+				</select>
+			</label>
+			<label class="settings_label" id="alarm_form_text_label" for="alarm_form_text">Description
+				<input id="alarm_form_text" class="field" type="text" maxlength="200" autocomplete="off">
+			</label>
+			<label class="settings_label hidden" id="alarm_form_line_label" for="alarm_form_line">Crontab
+				<input id="alarm_form_line" class="field" type="text" maxlength="240" autocomplete="off" spellcheck="false" placeholder='0 * * * * "alarm description"'>
+			</label>
+			<p id="alarm_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="alarm_form_actions" class="dlg_actions">
+				<button type="submit" id="alarm_form_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="whiteboard_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="whiteboard_title">
+		<div id="whiteboard_dialog">
+			<button type="button" class="dlg_dismiss" id="whiteboard_dismiss" aria-label="Close"></button>
+			<h2 id="whiteboard_title" class="dlg_title">Whiteboard</h2>
+			<div id="whiteboard_board">
+				<section id="whiteboard_plans">
+					<h3 id="whiteboard_plans_title">Plans</h3>
+					<ul id="whiteboard_plans_list"></ul>
+				</section>
+				<section id="whiteboard_notes">
+					<h3 id="whiteboard_notes_title">Stickies</h3>
+					<p id="whiteboard_notes_empty" class="hidden">No stickies.</p>
+					<ul id="whiteboard_notes_grid"></ul>
+				</section>
+			</div>
+			<p id="whiteboard_msg" class="dlg_msg dlg_note"></p>
+			<div id="whiteboard_actions" class="dlg_actions">
+				<button type="button" id="whiteboard_plan_add">Add plan</button>
+				<button type="button" id="whiteboard_note_add">Add note</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="plan_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="plan_form_title">
+		<form id="plan_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="plan_form_dismiss" aria-label="Close"></button>
+			<h2 id="plan_form_title" class="dlg_title">Add plan</h2>
+			<label class="settings_label" id="plan_form_name_label" for="plan_form_name">Title
+				<input id="plan_form_name" class="field" type="text" maxlength="120" autocomplete="off" required>
+			</label>
+			<label class="settings_label" id="plan_form_body_label" for="plan_form_body">Body
+				<textarea id="plan_form_body" class="field" rows="7" required></textarea>
+			</label>
+			<p id="plan_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="plan_form_actions" class="dlg_actions">
+				<button type="submit" id="plan_form_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="note_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="note_form_title">
+		<form id="note_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="note_form_dismiss" aria-label="Close"></button>
+			<h2 id="note_form_title" class="dlg_title">Add note</h2>
+			<label class="settings_label" id="note_form_name_label" for="note_form_name">Title
+				<input id="note_form_name" class="field" type="text" maxlength="120" autocomplete="off" required>
+			</label>
+			<label class="settings_label" id="note_form_body_label" for="note_form_body">Body
+				<textarea id="note_form_body" class="field" rows="4"></textarea>
+			</label>
+			<p id="note_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="note_form_actions" class="dlg_actions">
+				<button type="submit" id="note_form_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="pc_form_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="pc_form_title">
+		<form id="pc_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="pc_form_dismiss" aria-label="Close"></button>
+			<h2 id="pc_form_title" class="dlg_title">Add reminder</h2>
+			<label class="settings_label" id="pc_form_text_label" for="pc_form_text">Text
+				<input id="pc_form_text" class="field" type="text" maxlength="500" autocomplete="off" required>
+			</label>
+			<label class="settings_label" id="pc_form_in_label" for="pc_form_in">In
+				<input id="pc_form_in" class="field" type="text" maxlength="20" autocomplete="off" placeholder="15m" required>
+			</label>
+			<p id="pc_form_msg" class="dlg_msg dlg_note"></p>
+			<div id="pc_form_actions" class="dlg_actions">
+				<button type="submit" id="pc_form_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="packs_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="packs_title">
+		<div id="packs_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="packs_dismiss" aria-label="Close"></button>
+			<h2 id="packs_title" class="dlg_title">Tool packs</h2>
+			<p id="packs_note">Choose tool packs for this house. Click a name to toggle individual tools.</p>
+			<ul id="packs_list"></ul>
+			<p id="packs_msg" class="dlg_msg dlg_alert"></p>
+			<div id="packs_actions" class="dlg_actions">
+				<button type="button" id="packs_open_mcp">Edit mcp.json</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="pack_tools_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="pack_tools_title">
+		<div id="pack_tools_dialog" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="pack_tools_dismiss" aria-label="Close"></button>
+			<h2 id="pack_tools_title" class="dlg_title">Tools</h2>
+			<ul id="pack_tools_list"></ul>
+			<p id="pack_tools_msg" class="dlg_msg dlg_alert"></p>
+			<div id="pack_tools_actions" class="dlg_actions">
+				<button type="button" id="pack_tools_settings">Settings</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="pack_set_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="pack_set_title">
+		<form id="pack_set_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="pack_set_dismiss" aria-label="Close"></button>
+			<h2 id="pack_set_title" class="dlg_title">Pack settings</h2>
+			<label class="settings_label" id="pack_set_id_label" for="pack_set_id">Server ID
+				<input id="pack_set_id" class="field" type="text" autocomplete="off" readonly>
+			</label>
+			<label class="settings_label" id="pack_set_command_label" for="pack_set_command">Command
+				<input id="pack_set_command" class="field" type="text" autocomplete="off" required>
+			</label>
+			<label class="settings_label" id="pack_set_args_label" for="pack_set_args">Args (JSON array)
+				<textarea id="pack_set_args" class="field" rows="3" spellcheck="false"></textarea>
+			</label>
+			<label class="settings_label" id="pack_set_cwd_label" for="pack_set_cwd">Working directory
+				<input id="pack_set_cwd" class="field" type="text" autocomplete="off">
+			</label>
+			<label class="settings_label" id="pack_set_env_label" for="pack_set_env">Env (JSON object)
+				<textarea id="pack_set_env" class="field" rows="6" spellcheck="false"></textarea>
+			</label>
+			<p id="pack_set_msg" class="dlg_msg dlg_alert"></p>
+			<div id="pack_set_actions" class="dlg_actions">
+				<button type="submit" id="pack_set_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="mcp_json_overlay" class="hidden dlg_overlay" role="dialog" aria-modal="true" aria-labelledby="mcp_json_title">
+		<form id="mcp_json_form" class="dlg_panel">
+			<button type="button" class="dlg_dismiss" id="mcp_json_dismiss" aria-label="Close"></button>
+			<h2 id="mcp_json_title" class="dlg_title">mcp.json</h2>
+			<label class="settings_label" id="mcp_json_text_label" for="mcp_json_text"><span id="mcp_json_text_caption">Configure installed MCP servers</span>
+				<textarea id="mcp_json_text" rows="16" spellcheck="false"></textarea>
+			</label>
+			<p id="mcp_json_msg" class="dlg_msg dlg_alert"></p>
+			<div id="mcp_json_actions" class="dlg_actions">
+				<button type="submit" id="mcp_json_save">Save</button>
+			</div>
+		</form>
+	</div>
+
+	<script type="module" src="./renderer.js"></script>
+</body>
+</html>

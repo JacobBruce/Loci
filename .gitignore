@@ -1,0 +1,14 @@
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# electron-builder output (Phase 3)
+dist/
+out/
+
+# Runtime house data if created under the repo
+houses/
+
+# Cursor
+.cursor/
